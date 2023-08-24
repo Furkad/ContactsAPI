@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title >Список контактов</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <h2>Список контактов</h2>
+    <form name="contactForm">
+        <input type="hidden" name="id" value="0" />
+        <div class="form-group col-md-5">
+            <label for="fullName">Полное имя:</label>
+            <input class="form-control" name="fullName" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="email">Эл. почта:</label>
+            <input class="form-control" name="email" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="phone">Телефон:</label>
+            <input class="form-control" name="phone" type="number" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="address">Адрес:</label>
+            <input class="form-control" name="address" />
+        </div>
+        <div class="panel-body">
+            <button type="submit" id="submit" class="btn btn-primary">Сохранить</button>
+            <a id="reset" class="btn btn-primary" onclick="reset()">Сбросить</a>
+        </div>
+    </form>
+    <table class="table table-condensed table-striped  col-md-6">
+        <thead><tr><th>Полное имя</th><th>Почта</th><th>Телефон</th><th>Адрес</th><th></th></tr></thead>
+        <tbody>
+        </tbody>
+    </table>
+    <script>// Получение всех пользователей
+        async function GetContacts() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/Contacts", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const contacts = await response.json();
+                let rows = document.querySelector("tbody");
+                contacts.forEach(contact => {
+                    // добавляем полученные элементы в таблицу
+                    rows.append(row(contact));
+                });
+            }
+        }
+        // Получение одного пользователя
+        async function GetContact(id) {
+            const response = await fetch("/api/Contacts/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                const form = document.forms["contactForm"];
+                form.elements["id"].value = contact.id;
+                form.elements["fullName"].value = contact.fullName;
+                form.elements["email"].value = contact.email;
+                form.elements["phone"].value = contact.phone;
+                form.elements["address"].value = contact.address;
+            }
+        }
+        // Добавление пользователя
+        async function AddContact(contactFullName, contactEmail, contactPhone, contactAddress) {
+
+            const response = await fetch("api/Contacts", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: contactFullName,
+                    email: contactEmail,
+                    phone: parseInt(contactPhone),
+                    address: contactAddress
+                })
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                reset();
+                document.querySelector("tbody").append(row(contact));
+            }
+        }
+        // Изменение пользователя
+        async function UpdateContact(id, contactFullName, contactEmail, contactPhone, contactAddress) {
+            const response = await fetch("api/Contacts/" + id, {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: contactFullName,
+                    email: contactEmail,
+                    phone: parseInt(contactPhone),
+                    address: contactAddress
+                })
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                reset();
+                document.querySelector("tr[data-rowid='" + contact.id + "']").replaceWith(row(contact));
+            }
+        }
+        // Удаление пользователя
+        async function DeleteContact(id) {
+            const response = await fetch("/api/Contacts/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                document.querySelector("tr[data-rowid='" + contact.id + "']").remove();
+            }
+        }
+
+        // сброс формы
+        function reset() {
+            const form = document.forms["contactForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // создание строки для таблицы
+        function row(contact) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", contact.id);
+
+            const fullnameTd = document.createElement("td");
+            fullnameTd.append(contact.fullName);
+            tr.append(fullnameTd);
+
+            const emailTd = document.createElement("td");
+            emailTd.append(contact.email);
+            tr.append(emailTd);
+
+            const phoneTd = document.createElement("td");
+            phoneTd.append(contact.phone);
+            tr.append(phoneTd);
+
+            const addressTd = document.createElement("td");
+            addressTd.append(contact.address);
+            tr.append(addressTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", contact.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                GetContact(contact.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", contact.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                DeleteContact(contact.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        // сброс значений формы
+        document.getElementById("reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+
+
+        // отправка формы
+        document.forms["contactForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["contactForm"];
+            const id = form.elements["id"].value;
+            const fullname = form.elements["fullName"].value;
+            const email = form.elements["email"].value;
+            const phone = form.elements["phone"].value;
+            const address = form.elements["address"].value;
+            if (id == 0)
+                AddContact(fullname, email, phone, address);
+            else
+                UpdateContact(id, fullname, email, phone, address);
+        });
+
+        // загрузка пользователей
+        GetContacts();</script>
+</body>
+</html>

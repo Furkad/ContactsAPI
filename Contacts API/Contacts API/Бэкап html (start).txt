@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Вход или регистрация</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <h2>Вход</h2>
+    <form name="enterForm">
+        <div class="form-group col-md-5">
+            <label for="enterLogin">Логин:</label>
+            <input class="form-control" name="enterLogin" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="enterPassword">Пароль:</label>
+            <input class="form-control" type="password" name="enterPassword" />
+        </div>
+        <button type="submit" id="enterButton" class="btn btn-primary">Войти</button>
+    </form>
+    <h2>Регистрация</h2>
+    <form name="registrationForm">
+        <div class="form-group col-md-5">
+            <label for="registerLogin">Логин:</label>
+            <input class="form-control" name="registerLogin" />
+        </div>
+        <div class="form-group col-md-5">
+            <label for="registerPassword">Пароль:</label>
+            <input class="form-control" name="registerPassword" />
+        </div>
+        <button type="submit" id="registerButton" class="btn btn-primary">Зарегистрироваться</button>
+    </form>
+    <script>
+        // Добавление пользователя
+        async function AddAccount(accountLogin, accountPassword) {
+
+            const response = await fetch("api/Account", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: 0,
+                    login: accountLogin,
+                    password: accountPassword,
+                })
+            });
+            if (response.ok === true) {
+                const account = await response.json();
+                reset();
+            }
+        }
+
+        // Получение одного пользователя
+        async function GetAccount(login, password) {
+            const response = await fetch("/api/Account/" + login + "/" + password, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const account = await response.json();
+            }
+        }
+
+        // отправка формы логина
+        document.forms["enterForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["enterForm"];
+            const login = form.elements["enterLogin"].value;
+            const password = form.elements["enterPassword"].value;
+            GetAccount(login, password);
+        });
+
+        // отправка формы регистрации
+        document.forms["registrationForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["registrationForm"];
+            const login = form.elements["registerLogin"].value;
+            const password = form.elements["registerPassword"].value;
+            AddAccount(login, password);
+        });
+
+    </script>
+</body>
+</html>

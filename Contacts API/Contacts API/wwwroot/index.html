@@ -1,0 +1,535 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title >Список контактов</title>
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.0/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+    <div id="startBlock">
+        <h2>Вход</h2>
+        <form name="enterForm">
+            <div class="form-group col-md-5">
+                <label for="enterLogin">Логин:</label>
+                <input class="form-control" name="enterLogin" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="enterPassword">Пароль:</label>
+                <input class="form-control" type="password" name="enterPassword" />
+            </div>
+            <button type="submit" id="enterButton" onclick="(document.getElementById('startBlock').style.display = 'none'); (document.getElementById('contactsBlock').style.display='block')" class="btn btn-primary">Войти</button>
+        </form>
+        <h2>Регистрация</h2>
+        <form name="registrationForm">
+            <div class="form-group col-md-5">
+                <label for="registerLogin">Логин:</label>
+                <input class="form-control" name="registerLogin" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="registerPassword">Пароль:</label>
+                <input class="form-control" name="registerPassword" />
+            </div>
+            <button type="submit" id="registerButton" class="btn btn-primary">Зарегистрироваться</button>
+        </form>
+    </div>
+
+
+    <div id="contactsBlock" style="display:none">
+        <h2>Список контактов</h2>
+        <input type="hidden" name="accountLogin" id="accountLogin" />
+        <input type="hidden" name="accountPassword" id="accountPassword" />
+        <form name="contactForm">
+            <input type="hidden" name="id" value="0" />
+            <div class="form-group col-md-5">
+                <label for="fullName">Полное имя:</label>
+                <input class="form-control" name="fullName" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="email">Эл. почта:</label>
+                <input class="form-control" name="email" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="phone">Телефон:</label>
+                <input class="form-control" name="phone" type="number" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="address">Адрес:</label>
+                <input class="form-control" name="address" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" id="submitContact" class="btn btn-primary">Сохранить</button>
+                <a id="resetContact" class="btn btn-primary" onclick="resetContact()">Сбросить</a>
+            </div>
+        </form>
+        <table class="table table-condensed table-striped  col-md-6">
+            <thead><tr><th>Полное имя</th><th>Почта</th><th>Телефон</th><th>Адрес</th><th></th></tr></thead>
+            <tbody id="contactsTBody">
+            </tbody>
+        </table>
+    </div>
+
+
+    <div id="itemsBlock" style="display:none">
+        <h2>Товары контакта</h2>
+        <input type="hidden" name="contactId" id="contactId"  value=""/>
+        <form name="itemForm">
+            <input type="hidden" name="id" value="0" />
+            <div class="form-group col-md-5">
+                <label for="name">Название:</label>
+                <input class="form-control" name="name" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="description">Описание:</label>
+                <input class="form-control" name="description" />
+            </div>
+            <div class="form-group col-md-5">
+                <label for="amount">Количество:</label>
+                <input class="form-control" name="amount" type="number" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" id="submitItem" class="btn btn-primary">Сохранить</button>
+                <a id="resetItem" class="btn btn-primary" onclick="resetItem()">Сбросить</a>
+            </div>
+        </form>
+        <table class="table table-condensed table-striped  col-md-6">
+            <thead><tr><th>Название</th><th>Описание</th><th>Количество</th><th></th></tr></thead>
+            <tbody id="itemsTBody">
+            </tbody>
+        </table>
+    </div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    <script>
+        // Получение всех контактов
+        async function GetContacts() {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/Contacts", {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const contacts = await response.json();
+                let rows = document.getElementById("contactsTBody");
+                contacts.forEach(contact => {
+                    // добавляем полученные элементы в таблицу
+                    rows.append(rowContact(contact));
+                });
+            }
+        }
+        // Получение всех контактов одного пользователя
+        async function GetContactsOfAccount(login, password) {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/Contacts/" + login + "/" + password, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                // получаем данные
+                const contacts = await response.json();
+                if (contacts !== null) {
+                    let rows = document.getElementById("contactsTBody");
+                    contacts.forEach(contact => {
+                        // добавляем полученные элементы в таблицу
+                        rows.append(rowContact(contact));
+                    })
+                };
+            }
+        }
+        // Получение одного контакта
+        async function GetContact(id) {
+            const response = await fetch("/api/Contacts/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                const form = document.forms["contactForm"];
+                form.elements["id"].value = contact.id;
+                form.elements["fullName"].value = contact.fullName;
+                form.elements["email"].value = contact.email;
+                form.elements["phone"].value = contact.phone;
+                form.elements["address"].value = contact.address;
+            }
+        }
+        // Добавление контакта
+        async function AddContact(contactFullName, contactEmail, contactPhone, contactAddress) {
+
+            const response = await fetch("api/Contacts", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: contactFullName,
+                    email: contactEmail,
+                    phone: parseInt(contactPhone),
+                    address: contactAddress
+                })
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                resetContact();
+                document.getElementById("contactsTBody").append(rowContact(contact));
+            }
+        }
+        // Добавление контакта к аккаунту
+        async function AddContactToAccount(contactFullName, contactEmail, contactPhone, contactAddress, login, password) {
+
+            const response = await fetch("api/Contacts/" + login + "/" + password, {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: contactFullName,
+                    email: contactEmail,
+                    phone: parseInt(contactPhone),
+                    address: contactAddress
+                })
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                resetContact();
+                document.getElementById("contactsTBody").append(rowContact(contact));
+            }
+        }
+        // Изменение контакта
+        async function UpdateContact(id, contactFullName, contactEmail, contactPhone, contactAddress) {
+            const response = await fetch("api/Contacts/" + id, {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    fullName: contactFullName,
+                    email: contactEmail,
+                    phone: parseInt(contactPhone),
+                    address: contactAddress
+                })
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                resetContact();
+                document.querySelector("tr[data-rowid='" + contact.id + "']").replaceWith(rowContact(contact));
+            }
+        }
+        // Удаление контакта
+        async function DeleteContact(id) {
+            const response = await fetch("/api/Contacts/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const contact = await response.json();
+                document.querySelector("tr[data-rowid='" + contact.id + "']").remove();
+            }
+        }
+
+
+
+        // Добавление пользователя
+        async function AddAccount(accountLogin, accountPassword) {
+
+            const response = await fetch("api/Account", {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    login: accountLogin,
+                    password: accountPassword,
+                })
+            });
+            if (response.ok === true) {
+                const account = await response.json();
+                document.form["registrationForm"].reset();
+            }
+        }
+
+        // Получение одного пользователя
+        async function GetAccount(login, password) {
+            const response = await fetch("/api/Account/" + login + "/" + password, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const account = await response.json();
+                const accountLogin = document.getElementById("accountLogin");
+                const accountPassword = document.getElementById("accountPassword");
+                accountLogin.value = account.login;
+                accountPassword.value = account.password;
+            }
+        }
+
+
+        // Получение всех товаров одного контакта
+        async function GetItemsOfContact(id) {
+            // отправляет запрос и получаем ответ
+            const response = await fetch("/api/Items/" + id, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            // если запрос прошел нормально
+            if (response.ok === true) {
+                document.getElementById("contactId").value = id;
+                // получаем данные
+                const items = await response.json();
+                if (items !== null) {
+                    let rows = document.getElementById("itemsTBody");
+                    items.forEach(item => {
+                        // добавляем полученные элементы в таблицу
+                        rows.append(rowItem(item));
+                    })
+                };
+            }
+        }
+        // Получение одного товара
+        async function GetItem(id, oneItem) {
+            const response = await fetch("/api/Items/" + id + "/" + oneItem, {
+                method: "GET",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const item = await response.json();
+                const form = document.forms["itemForm"];
+                form.elements["id"].value = item.id;
+                form.elements["name"].value = item.name;
+                form.elements["description"].value = item.description;
+                form.elements["amount"].value = item.amount;
+            }
+        }
+        // Добавление контакта к аккаунту
+        async function AddItemToContact(itemName, itemDescription, itemAmount, id) {
+
+            const response = await fetch("api/Items/" + id, {
+                method: "POST",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: itemName,
+                    description: itemDescription,
+                    amount: parseInt(itemAmount)
+                })
+            });
+            if (response.ok === true) {
+                const item = await response.json();
+                resetItem();
+                document.getElementById("itemsTBody").append(rowItem(item));
+
+            }
+        }
+        // Изменение товара
+        async function UpdateItem(id, itemName, itemDescription, itemAmount) {
+            const response = await fetch("api/Items/" + id, {
+                method: "PUT",
+                headers: { "Accept": "application/json", "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    name: itemName,
+                    description: itemDescription,
+                    amount: parseInt(itemAmount)
+                })
+            });
+            if (response.ok === true) {
+                const item = await response.json();
+                resetItem();
+                document.querySelector("tr[data-rowid='" + item.id + "']").replaceWith(rowItem(item));
+            }
+        }
+        // Удаление товара
+        async function DeleteItem(id) {
+            const response = await fetch("/api/Items/" + id, {
+                method: "DELETE",
+                headers: { "Accept": "application/json" }
+            });
+            if (response.ok === true) {
+                const item = await response.json();
+                document.querySelector("tr[data-rowid='" + item.id + "']").remove();
+            }
+        }
+
+
+
+
+        // сброс формы контакта
+        function resetContact() {
+            const form = document.forms["contactForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // сброс формы товара
+        function resetItem() {
+            const form = document.forms["itemForm"];
+            form.reset();
+            form.elements["id"].value = 0;
+        }
+        // создание строки для таблицы контактов
+        function rowContact(contact) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", contact.id);
+
+            const fullnameTd = document.createElement("td");
+            fullnameTd.append(contact.fullName);
+            tr.append(fullnameTd);
+
+            const emailTd = document.createElement("td");
+            emailTd.append(contact.email);
+            tr.append(emailTd);
+
+            const phoneTd = document.createElement("td");
+            phoneTd.append(contact.phone);
+            tr.append(phoneTd);
+
+            const addressTd = document.createElement("td");
+            addressTd.append(contact.address);
+            tr.append(addressTd);
+
+            const linksTd = document.createElement("td");
+
+            const itemsLink = document.createElement("a");
+            itemsLink.setAttribute("onclick", "(document.getElementById('itemsBlock').style.display='block')")
+            itemsLink.setAttribute("data-id", contact.id);
+            itemsLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            itemsLink.append("Список товаров");
+            itemsLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetItemsOfContact(contact.id);
+            });
+            linksTd.append(itemsLink);
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", contact.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+                e.preventDefault();
+                GetContact(contact.id);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", contact.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                DeleteContact(contact.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+        // создание строки для таблицы товаров
+        function rowItem(item) {
+
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-rowid", item.id);
+
+            const nameTd = document.createElement("td");
+            nameTd.append(item.name);
+            tr.append(nameTd);
+
+            const descriptionTd = document.createElement("td");
+            descriptionTd.append(item.description);
+            tr.append(descriptionTd);
+
+            const amountTd = document.createElement("td");
+            amountTd.append(item.amount);
+            tr.append(amountTd);
+
+            const linksTd = document.createElement("td");
+
+            const editLink = document.createElement("a");
+            editLink.setAttribute("data-id", item.id);
+            editLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            editLink.append("Изменить");
+            editLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                GetItem(item.id, true);
+            });
+            linksTd.append(editLink);
+
+            const removeLink = document.createElement("a");
+            removeLink.setAttribute("data-id", item.id);
+            removeLink.setAttribute("style", "cursor:pointer;padding:15px;");
+            removeLink.append("Удалить");
+            removeLink.addEventListener("click", e => {
+
+                e.preventDefault();
+                DeleteItem(item.id);
+            });
+
+            linksTd.append(removeLink);
+            tr.appendChild(linksTd);
+
+            return tr;
+        }
+
+        // отправка формы контакта
+        document.forms["contactForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["contactForm"];
+            const id = form.elements["id"].value;
+            const fullname = form.elements["fullName"].value;
+            const email = form.elements["email"].value;
+            const phone = form.elements["phone"].value;
+            const address = form.elements["address"].value;
+            const login = document.getElementById("accountLogin").value;
+            const password = document.getElementById("accountPassword").value;
+            if (id == 0)
+                AddContactToAccount(fullname, email, phone, address, login, password);
+            else
+                UpdateContact(id, fullname, email, phone, address);
+        });
+        // отправка формы товара
+        document.forms["itemForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["itemForm"];
+            const id = form.elements["id"].value;
+            const name = form.elements["name"].value;
+            const description = form.elements["description"].value;
+            const amount = form.elements["amount"].value;
+            const contactId = document.getElementById("contactId").value;
+            if (id == 0)
+                AddItemToContact(name, description, amount, contactId);
+            else
+                UpdateItem(id, name, description, amount);
+        });
+
+
+        // отправка формы логина
+        document.forms["enterForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["enterForm"];
+            const login = form.elements["enterLogin"].value;
+            const password = form.elements["enterPassword"].value;
+            GetAccount(login, password);
+            GetContactsOfAccount(login, password);
+            form.reset();
+        });
+
+        // отправка формы регистрации
+        document.forms["registrationForm"].addEventListener("submit", e => {
+            e.preventDefault();
+            const form = document.forms["registrationForm"];
+            const login = form.elements["registerLogin"].value;
+            const password = form.elements["registerPassword"].value;
+            AddAccount(login, password);
+            form.reset();
+        });
+    </script>
+</body>
+</html>
